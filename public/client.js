@@ -271,18 +271,18 @@ $(document).ready(function() {
 		$("#flip_video_div").hide();
 	}
 
-	$("#canvas_them").hammer().on("doubletap", function(){
-		if($("#img_canvas").is(":visible")){
-			$("#remove").click();
-			stopDrawing = true;
-			$("#canvas_them").css("z-index", "0");
-		}
-	});
+   $("#canvas_them").hammer().on("doubletap", function(){
+      if($("#img_canvas").is(":visible")){
+         $("#remove").click();
+         stopDrawing = true;
+         $("#canvas_them").css("z-index", "0");
+      }
+   });
 
-	$("#img_canvas").hammer().on("doubletap", function(){
-		stopDrawing = false;
-		$("#canvas_them").css("z-index", "1");
-	});
+   $("#img_canvas").hammer().on("doubletap", function(){
+      stopDrawing = false;
+      $("#canvas_them").css("z-index", "1");
+   });
 
 	//window.location.hostname does not work with "localhost"
 	socket = io.connect("http://" + window.location.hostname + ":8081");
