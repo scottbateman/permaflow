@@ -204,49 +204,49 @@ function getURLParameter(name) {
 }
 
 function createFullStream(){
-	holla.createFullStream(function(err, stream) {
-		window.stream = stream;
+   holla.createFullStream(function(err, stream) {
+      window.stream = stream;
 
-		console.log("createFullStream");
+      console.log("createFullStream");
 
-		if (err) {
-			throw err;
-		}
+      if (err) {
+         throw err;
+      }
 
-		if(video_drawing){
-			init_drawing();
-		}
+      if(video_drawing){
+         init_drawing();
+      }
 
-		stream.pipe($("#me"));
+      stream.pipe($("#me"));
 
-		if(!$("#picture").val()){
-			$(".me").show();
-		}
+      if(!$("#picture").val()){
+         $(".me").show();
+      }
 
-		rtc.on("call", function(call) {
-			window.call = call;
+      rtc.on("call", function(call) {
+         window.call = call;
 
-			console.log("Inbound call from ", call);
+         console.log("Inbound call from ", call);
 
-			call.on('error', function(err) {
-				throw err;
-			});
+         call.on('error', function(err) {
+            throw err;
+         });
 
-			call.setLocalStream(stream);
-			call.answer();
+         call.setLocalStream(stream);
+         call.answer();
 
-			$("#fields").hide();
-			$("#controls").show();
-			$(".them").show();
-			$("#alert").html("").hide();
+         $("#fields").hide();
+         $("#controls").show();
+         $(".them").show();
+         $("#alert").html("").hide();
 
-			for (var key in call.users()) {
-				call.users()[key].ready(function(stream) {
-					$(".them").show();
-					return stream.pipe($("#them"));
-				});
-			}
-		});
+         for (var key in call.users()) {
+            call.users()[key].ready(function(stream) {
+               $(".them").show();
+               return stream.pipe($("#them"));
+            });
+         }
+      });
 
 		socket.emit("ready");
 	});
