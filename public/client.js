@@ -86,50 +86,50 @@ function hexToRgb(hex) {
 }
 
 function main_interval(){
-	mainInterval = setInterval(function(){
-		counter++;
+mainInterval = setInterval(function(){
+   counter++;
 
-		if(counter >= trailTime){
-			me.fillStyle = 'rgba(0,0,0,0.11)';
-			me.fillRect(0, 0, me.canvas.width, me.canvas.height);
+   if(counter >= trailTime){
+      me.fillStyle = 'rgba(0,0,0,0.11)';
+      me.fillRect(0, 0, me.canvas.width, me.canvas.height);
 
-			if(them){
-				them.fillStyle = 'rgba(0,0,0,0.11)';
-				them.fillRect(0, 0, them.canvas.width, them.canvas.height);
-			}
-		}
-
-		if(mouseIsDown && draw && !sendCursorToThem) {
-			var lp = { x: particle.position.x, y: particle.position.y };
-
-			particle.shift.x += (mouseX - particle.shift.x) * (particle.speed);
-			particle.shift.y += (mouseY - particle.shift.y) * (particle.speed);
-
-			particle.position.x = particle.shift.x + Math.cos(particle.offset.x);
-			particle.position.y = particle.shift.y + Math.sin(particle.offset.y);
-
-			draw(draw_at, lp.x, lp.y, particle.position.x, particle.position.y, particle.size, particle.fillColor);
-
-			trailTime = counter + Math.pow(10, $("#time").val());
-
-			socket.emit('draw', {
-				'x1': lp.x / $("#canvas_" + draw_at).width(),
-				'y1': lp.y / $("#canvas_" + draw_at).height(),
-				'x2': particle.position.x / $("#canvas_" + draw_at).width(),
-				'y2': particle.position.y / $("#canvas_" + draw_at).height(),
-				'size': particle.size,
-				'color': particle.fillColor,
-				'trailTime': Math.pow(10, $("#time").val()),
-				'draw_at': $("#flip_video").is(':checked') ? (draw_at == "me" ? "them" : "me") : draw_at
-			});
-		} else if (mouseIsDown && sendCursorToThem) {
-         socket.emit('show_cursor', {
-            x: mouseX / $("#canvas_" + draw_at).width(),
-            y: mouseY / $("#canvas_" + draw_at).height(),
-            at: (draw_at == "me" ? "them" : "me")
-         });
+      if(them){
+         them.fillStyle = 'rgba(0,0,0,0.11)';
+         them.fillRect(0, 0, them.canvas.width, them.canvas.height);
       }
-	}, 1000 / 60);
+   }
+
+   if(mouseIsDown && draw && !sendCursorToThem) {
+      var lp = { x: particle.position.x, y: particle.position.y };
+
+      particle.shift.x += (mouseX - particle.shift.x) * (particle.speed);
+      particle.shift.y += (mouseY - particle.shift.y) * (particle.speed);
+
+      particle.position.x = particle.shift.x + Math.cos(particle.offset.x);
+      particle.position.y = particle.shift.y + Math.sin(particle.offset.y);
+
+      draw(draw_at, lp.x, lp.y, particle.position.x, particle.position.y, particle.size, particle.fillColor);
+
+      trailTime = counter + Math.pow(10, $("#time").val());
+
+      socket.emit('draw', {
+         'x1': lp.x / $("#canvas_" + draw_at).width(),
+         'y1': lp.y / $("#canvas_" + draw_at).height(),
+         'x2': particle.position.x / $("#canvas_" + draw_at).width(),
+         'y2': particle.position.y / $("#canvas_" + draw_at).height(),
+         'size': particle.size,
+         'color': particle.fillColor,
+         'trailTime': Math.pow(10, $("#time").val()),
+         'draw_at': $("#flip_video").is(':checked') ? (draw_at == "me" ? "them" : "me") : draw_at
+      });
+   } else if (mouseIsDown && sendCursorToThem) {
+      socket.emit('show_cursor', {
+         x: mouseX / $("#canvas_" + draw_at).width(),
+         y: mouseY / $("#canvas_" + draw_at).height(),
+         at: (draw_at === "me" ? "them" : "me")
+      });
+   }
+}, 1000 / 60);
 }
 
 function prepare_photo(){
