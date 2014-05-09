@@ -39,6 +39,11 @@
       </div>
 
       <div id="controls" style="display:block;">
+         <div id="video_select">
+            <label for="videoSource">Video source: </label>
+            <select name="Video source: " id="videoSource"></select>
+         </div>
+
          <div id="size_div">
             <label for="size">Size</label>
             <input id="size" type="range" name="points" min="1" max="3">
@@ -52,11 +57,14 @@
          <button id="remove">Clear</button>
          <button id="colour">Change color</button>
 
-         <button id="back_video" style="display: none;">V</button>
+         <button id="back_video" style="display: none;">Back to Video</button>
          <button id="sync_video" style="display: none;">DS</button>
 
          <input type="file" id="picture" name="picture" accept="image/*" style="display:none;">
-         <button id="photo">High res</button>
+         <button id="photo">H</button>
+
+         <input type="file" id="icon" name="icon" accept="image/*"/>
+         <button id="icon">Set image</button>
 
          <div id="flip_video_div">
             <label id="flip_video_label" for="flip_video">Flip Video</label>
@@ -66,6 +74,11 @@
          <div id="show_line_div">
             <label id="show_line_label" for="show_line">Draw line</label>
             <input type="checkbox" id="show_line"/>
+         </div>
+
+         <div id="show_small_video_div">
+            <label id="show_small_video_label" for="show_small_video">Show small video</label>
+            <input type="checkbox" checked id="show_small_video"/>
          </div>
 
          <div id="bitrate">Bitrate:</div>

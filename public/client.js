@@ -3,11 +3,13 @@ var video_drawing = true;
 var high_res_drawing = false;
 var high_res = false;
 var show_bitrate = false;
-var show_time_size = false;
+var show_time_size = true;
 var show_flip_video = true;
 var allow_desync_high_res = true;
 var fix_orientation = true;
 var cursor_drawing = true;
+var allow_replace_video_with_pic = true;
+var allow_hide_small_video = true;
 
 //if true will refresh page in order to use the camera for high res., seems to not be needed in chrome mobile 29
 var use_workaround_high_res = false;
@@ -42,7 +44,9 @@ var socket;
 var name;
 
 var rtc;
-var stream;
+var localStream;
+var remoteStream;
+var webrtcCall;
 var user;
 
 var stopDrawing = false;
@@ -53,6 +57,20 @@ var gesturableImg;
 var sync = true;
 
 var sendCursorToThem = true;
+
+var videoSelect;
+
+// function gotSources(sourceInfos) {
+//    for (var i = 0; i != sourceInfos.length; ++i) {
+//       var sourceInfo = sourceInfos[i];
+//       var option = document.createElement("option");
+//       option.value = sourceInfo.id;
+//       if (sourceInfo.kind === 'video') {
+//          option.text = sourceInfo.label || 'camera ' + (videoSelect.length + 1);
+//          videoSelect.appendChild(option);
+//       }
+//    }
+// }
 
 function send_image(){
 if(sync){
@@ -126,7 +144,7 @@ mainInterval = setInterval(function(){
       socket.emit('show_cursor', {
          x: mouseX / $("#canvas_" + draw_at).width(),
          y: mouseY / $("#canvas_" + draw_at).height(),
-         at: (draw_at === "me" ? "them" : "me")
+         at: $("#flip_video").is(':checked') ? draw_at : (draw_at === "me" ? "them" : "me")
       });
    }
 }, 1000 / 60);
@@ -204,8 +222,8 @@ function getURLParameter(name) {
 }
 
 function createFullStream(){
-   holla.createFullStream(function(err, stream) {
-      window.stream = stream;
+   var cb = function(err, stream) {
+      localStream = stream;
 
       console.log("createFullStream");
 
@@ -217,39 +235,26 @@ function createFullStream(){
          init_drawing();
       }
 
-      stream.pipe($("#me"));
+      localStream.pipe($("#me"));
 
       if(!$("#picture").val()){
          $(".me").show();
       }
 
-      rtc.on("call", function(call) {
-         window.call = call;
+      socket.emit("ready");
+   };
 
-         console.log("Inbound call from ", call);
+   // if (!arguments.length) {
+   holla.createStream({audio: true, video: true}, cb);
+   // } else {
+   //    var videoSource = videoSelect.value;
+   //    holla.createStream({video: {optional: [{sourceId: videoSource}]}, audio: true}, cb);
+   // }
+}
 
-         call.on('error', function(err) {
-            throw err;
-         });
-
-         call.setLocalStream(stream);
-         call.answer();
-
-         $("#fields").hide();
-         $("#controls").show();
-         $(".them").show();
-         $("#alert").html("").hide();
-
-         for (var key in call.users()) {
-            call.users()[key].ready(function(stream) {
-               $(".them").show();
-               return stream.pipe($("#them"));
-            });
-         }
-      });
-
-		socket.emit("ready");
-	});
+function hideCursor() {
+   console.log('hiding cursor');
+   $('#cursor').hide();
 }
 
 $(document).ready(function() {
@@ -271,6 +276,17 @@ $(document).ready(function() {
 		$("#flip_video_div").hide();
 	}
 
+   if (allow_replace_video_with_pic) {
+      $('button#icon').show();
+   } else {
+      $('button#icon').hide();
+   }
+
+   if (allow_hide_small_video) {
+      $('div#show_small_video_div').show();
+   } else {
+      $('div#show_small_video_div').hide();
+   }
 
    // $("#canvas_them").hammer().on("doubletap", function(){
    //    if($("#img_canvas").is(":visible")){
@@ -285,9 +301,47 @@ $(document).ready(function() {
    //    $("#canvas_them").css("z-index", "1");
    // });
 
+   // videoSelect = document.querySelector("#videoSource")
+   // if (typeof MediaStreamTrack === 'undefined'){
+   //    alert('This browser does not support MediaStreamTrack.\n\nTry Chrome Canary.');
+   // } else {
+   //    MediaStreamTrack.getSources(gotSources);
+   // }
+   //
+   // videoSelect.onchange = function() {
+   //    console.log(call);
+   //    createFullStream();
+   // };
+
 	//window.location.hostname does not work with "localhost"
 	socket = io.connect("http://" + window.location.hostname + ":8081");
 	rtc = holla.createClient();
+
+   rtc.on("call", function(call) {
+      webrtcCall = call;
+
+      console.log("Inbound call from ", webrtcCall);
+
+      webrtcCall.on('error', function(err) {
+         throw err;
+      });
+
+      webrtcCall.setLocalStream(localStream);
+      webrtcCall.answer();
+
+      $("#fields").hide();
+      $("#controls").show();
+      $(".them").show();
+      $("#alert").html("").hide();
+
+      for (var key in webrtcCall.users()) {
+         webrtcCall.users()[key].ready(function(stream) {
+            $(".them").show();
+            remoteStream = stream;
+            return remoteStream.pipe($("#them"));
+         });
+      }
+   });
 
 	$("#sync_video").click(function(){
 		if($(this).html() == "D"){
@@ -394,27 +448,27 @@ $(document).ready(function() {
       console.log("socket ready");
 
       var id = setInterval(function(){
-         if (typeof window.stream != 'undefined'){
+         if (typeof localStream != 'undefined'){
             clearInterval(id);
 
             rtc.createCall(function(err, call) {
-               window.call = call;
+               webrtcCall = call;
 
                if (err) {
                   throw err;
                }
 
-               console.log("Created call", call);
+               console.log("Created call", webrtcCall);
 
-               call.on('error', function(err) {
+               webrtcCall.on('error', function(err) {
                   throw err;
                });
 
-               call.setLocalStream(stream);
-               call.add($("#whoCall").val());
+               webrtcCall.setLocalStream(localStream);
+               webrtcCall.add($("#whoCall").val());
 
-               for (var key in call.users()) {
-                  call.users()[key].ready(function(stream) {
+               for (var key in webrtcCall.users()) {
+                  webrtcCall.users()[key].ready(function(stream) {
                      $(".them").show();
                      $("#alert").html("").hide();
 
@@ -429,6 +483,10 @@ $(document).ready(function() {
 	socket.on("back_video", function(){
 		back_video();
 	});
+
+   socket.on('hide_cursor', function() {
+      hideCursor();
+   });
 
 	$(window).bind('orientationchange', function(e){
 		if($("#picture").val() || fix_orientation){
@@ -479,11 +537,28 @@ $(document).ready(function() {
 	});
 
 	$("#flip_video").click(function(){
-		var temp = $("#me").attr("src");
+      var me = $('#me');
+      var them = $('#them');
 
-		$("#me").attr("src", $("#them").attr("src"));
-		$("#them").attr("src", temp);
+      me.attr('id', 'them').attr('class', 'them');
+      if (me.prop('tagName') === 'VIDEO') { me.attr('muted', false); }
+      them.attr('id', 'me').attr('class', 'me');
+      if (them.prop('tagName') === 'VIDEO') { me.attr('muted', true); }
+
+      resizeCanvas();
 	});
+
+   $('input#show_small_video').click(function() {
+      var me = $('#me');
+      var myCanvas = $('#canvas_me');
+      if ($(this).is(':checked')) {
+         me.show();
+         myCanvas.show();
+      } else {
+         me.hide();
+         myCanvas.hide();
+      }
+   });
 
 	$("#photo").click(function(){
 		if(use_workaround_high_res){
@@ -492,9 +567,9 @@ $(document).ready(function() {
 		else{
 			console.log("photo click");
 
-			if (typeof call != 'undefined'){
-				//call.end();
-				call.releaseLocalStream();
+			if (typeof webrtcCall != 'undefined'){
+				//webrtcCall.end();
+				webrtcCall.releaseLocalStream();
 				//stream.getVideoTracks()[0].enabled = false;
 			}
 
@@ -584,26 +659,47 @@ $(document).ready(function() {
 		}
 	});
 
+   $('button#icon').click(function() {
+      if (webrtcCall){
+         //webrtcCall.end();
+         webrtcCall.releaseLocalStream();
+      }
+      $('input#icon').click();
+   });
+
+   $('input#icon').change(function(ev) {
+		var files = ev.originalEvent.target.files;
+      if (files && files.length) {
+         $('button#icon').hide();
+         $('button#back_video').show();
+
+         // var URL = window.URL || window.webkitURL;
+         // var imgURL = URL.createObjectURL(files[0]);
+         var reader = new FileReader();
+         reader.onload = function(ev) {
+            var img = new Image();
+            img.src = ev.target.result;
+
+            socket.emit('send_icon', {
+               src: img.src
+            });
+
+            displayPicture($("#flip_video").is(':checked') ? "them" : "me", img.src);
+         }
+         reader.readAsDataURL(files[0]);
+         // URL.revokeObjectURL(imgURL);
+      }
+   });
+
+   socket.on('send_icon', function(data) {
+      displayPicture($("#flip_video").is(':checked') ? "me" : "them", data.src);
+   });
+
 	$(window).resize(function() {
 		setSize = true;
 	});
 
-	$("video").resize(function(){
-		if($(this).attr("id") == "me"){
-			if(canvas_me){
-				canvas_me.width = $("#me").width();
-				canvas_me.height = $("#me").height();
-			}
-		}
-		else{
-			if(canvas_them){
-				canvas_them.width = $("#them").width();
-				canvas_them.height = $("#them").height();
-			}
-
-			//$(".them").show();
-		}
-	});
+	$("video").resize(resizeCanvas);
 
 	$("#canvas_me, #canvas_them").bind("touchmove mousemove", function(e){
 		if(!stopDrawing){
@@ -666,6 +762,9 @@ $(document).ready(function() {
 	
 	$("#canvas_me, #canvas_them").bind("touchend mouseup", function(){
 		mouseIsDown = false;
+      if (sendCursorToThem) {
+         socket.emit('hide_cursor');
+      }
 	});
 
 	$("#img_canvas").bind("touchend mouseup", function(){
@@ -687,7 +786,16 @@ $(document).ready(function() {
 		// 	}
 		// }
 
-      flip = data.draw_at == "me" ? "them" : "me";
+      // flip = data.draw_at == "me" ? "them" : "me";
+      // flip = $("#flip_video").is(':checked') ? (flip == "me" ? "them" : "me") : flip;
+      // next if replaces previous 2 lines
+      var checked = $('#flip_video').is(':checked');
+      if ((data.draw_at === 'me' && !checked) || (data.draw_at === 'them' && checked)) {
+         flip = 'them';
+      } else {
+         flip = 'me';
+      }
+      console.log(flip);
 
 		draw(flip, 
 			$("#canvas_" + flip).width() * data.x1, 
@@ -702,10 +810,11 @@ $(document).ready(function() {
 
    socket.on('show_cursor', function(data) {
       $('#cursor').show();
+      var at = $("#flip_video").is(':checked') ? (data.at == "me" ? "them" : "me") : data.at;
 
-      moveCursor(data.at,
-         data.x * $('#canvas_' + data.at).width(),
-         data.y * $('#canvas_' + data.at).height());
+      moveCursor(at,
+         data.x * $('#canvas_' + at).width(),
+         data.y * $('#canvas_' + at).height());
    });
 
 	socket.on("clear", function(){
@@ -726,9 +835,9 @@ $(document).ready(function() {
 				$('#bitrate').html("Bitrate: " + str);
 			}
 
-			if (typeof window.call != 'undefined'){
-				for (var key in call.users()) {
-					call.user(key).connection.getStats(function(stats) {
+			if (typeof webrtcCall != 'undefined'){
+				for (var key in webrtcCall.users()) {
+					webrtcCall.user(key).connection.getStats(function(stats) {
 						var statsString = '';
 						var results = stats.result();
 						var bitrateText;// = 'No bitrate stats';
@@ -824,4 +933,34 @@ function moveCursor(at, x, y) {
    $('#cursor')
       .css('left', $('#' + at).offset().left + x)
       .css('top', $('#' + at).offset().top + y);
+}
+
+function resizeCanvas(){
+   if(canvas_me){
+      canvas_me.width = $("#me").width();
+      canvas_me.height = $("#me").height();
+   }
+   if(canvas_them){
+      canvas_them.width = $("#them").width();
+      canvas_them.height = $("#them").height();
+   }
+}
+
+function displayPicture(at, src) {
+   var canvas;
+   var video = $('video#' + at);
+   var img = $('<img>', {
+      id: video.attr('id'),
+      class: video.attr('class'),
+      src: src
+   }).appendTo(video.parent()).show();
+   video.remove();
+
+   if (at === 'me') {
+      canvas = canvas_me;
+   } else if (at === 'them') {
+      canvas = canvas_them;
+   }
+   canvas.width = img.width();
+   canvas.height = img.height();
 }

@@ -173,6 +173,14 @@ var rtc = holla.createServer(server);
          socket.broadcast.emit('show_cursor', data);
       });
 
+      socket.on('hide_cursor', function(data) {
+         socket.broadcast.emit('hide_cursor', data);
+      });
+
+      socket.on('send_icon', function(data) {
+         socket.broadcast.emit('send_icon', data);
+      })
+
 		socket.emit("inform_name", {
 			name: socket.id
 		});
