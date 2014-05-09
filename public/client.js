@@ -390,41 +390,41 @@ $(document).ready(function() {
 		});
 	});
 
-	socket.on("ready", function(){
-		console.log("socket ready");
+   socket.on("ready", function(){
+      console.log("socket ready");
 
-		var id = setInterval(function(){
-			if (typeof window.stream != 'undefined'){
-				clearInterval(id);
+      var id = setInterval(function(){
+         if (typeof window.stream != 'undefined'){
+            clearInterval(id);
 
-				rtc.createCall(function(err, call) {
-					window.call = call;
+            rtc.createCall(function(err, call) {
+               window.call = call;
 
-					if (err) {
-						throw err;
-					}
+               if (err) {
+                  throw err;
+               }
 
-					console.log("Created call", call);
+               console.log("Created call", call);
 
-					call.on('error', function(err) {
-						throw err;
-					});
+               call.on('error', function(err) {
+                  throw err;
+               });
 
-					call.setLocalStream(stream);
-					call.add($("#whoCall").val());
+               call.setLocalStream(stream);
+               call.add($("#whoCall").val());
 
-					for (var key in call.users()) {
-						call.users()[key].ready(function(stream) {
-							$(".them").show();
-							$("#alert").html("").hide();
+               for (var key in call.users()) {
+                  call.users()[key].ready(function(stream) {
+                     $(".them").show();
+                     $("#alert").html("").hide();
 
-							return stream.pipe($("#them"));
-						});
-					}
-				});
-			}
-		}, 100);
-	});
+                     return stream.pipe($("#them"));
+                  });
+               }
+            });
+         }
+      }, 100);
+   });
 
 	socket.on("back_video", function(){
 		back_video();
